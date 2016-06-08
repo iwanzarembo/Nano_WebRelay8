@@ -1,6 +1,6 @@
 /*
-	Nano_WebRelay8.ino - Sketch for Arduino Nano with ATmega328 implementation 
-	to control relays via HTTP requests.
+	Nano_WebRelay8_OpenHab.ino - Sketch for Arduino Nano with ATmega328 
+	implementation to control relays via HTTP requests.
 	Copyright (c) 2015 Iwan Zarembo <iwan@zarembo.de>
 	All rights reserved.
 
@@ -17,15 +17,15 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	
-	Dieses Programm ist Freie Software: Sie können es unter den Bedingungen
+	Dieses Programm ist Freie Software: Sie kÃ¶nnen es unter den Bedingungen
 	der GNU General Public License, wie von der Free Software Foundation,
 	Version 3 der Lizenz oder (nach Ihrer Wahl) jeder neueren
-	veröffentlichten Version, weiterverbreiten und/oder modifizieren.
+	verÃ¶ffentlichten Version, weiterverbreiten und/oder modifizieren.
 	
-	Dieses Programm wird in der Hoffnung, dass es nützlich sein wird, aber
-	OHNE JEDE GEWÄHRLEISTUNG, bereitgestellt; sogar ohne die implizite
-	Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
-	Siehe die GNU General Public License für weitere Details.
+	Dieses Programm wird in der Hoffnung, dass es nÃ¼tzlich sein wird, aber
+	OHNE JEDE GEWÃ„HRLEISTUNG, bereitgestellt; sogar ohne die implizite
+	GewÃ¤hrleistung der MARKTFÃ„HIGKEIT oder EIGNUNG FÃœR EINEN BESTIMMTEN ZWECK.
+	Siehe die GNU General Public License fÃ¼r weitere Details.
 	
 	Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
 	Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
@@ -35,13 +35,12 @@
  * This sketch provides a small webserver to control releays connected to your Arduino Nano with ATmega328.
  * 
  * What the sketch does:
- * It is a small web server which listens to http requests to (de-)activate a certain relay. 
+ * It is a small web server which listens to http requests to (de-)activate a certain relay but the result
+ * is openHab compatible.
  * 
  * Features:
  * - Initial GET request returns a JSON array with the current status of the relay.
- *   e.g.  {"r":[0,0,1,0,0,0,0,0]}
- *   -> 0 means the relay is turned off
- *   -> 1 means the relay is turned on
+ *   e.g.  {"r":["OFF","ON","OFF","OFF","OFF","OFF","OFF","OFF"]}
  *   Due to performance reasons only the status is returned. But you can see that the first  entry is for
  *   the first relay, the second for the second and so on.
  * - Only POST requests can change the status of the relays. The request data must follow the 
@@ -72,7 +71,13 @@
  *
  * Found a bug? Please create an issue at https://github.com/iwanzarembo/Nano_WebRelay8
  * 
- * The sketch was developed and build at codebender.cc and can be accessed at https://codebender.cc/sketch:72367
+ * The sketch was developed and build at codebender.cc and can be accessed at https://codebender.cc/sketch:321260
+ * 
+ * Known issues
+ * 
+ * - My Requst never returns
+ *   Sometimes the Webserver just does not stop the client, I do not know why. But if you resend the request, then it will 
+ *   work again, which means you should always call with a timeout!
  * 
  * created 04 Jan 2015 - by Iwan Zarembo
  * 
@@ -83,6 +88,9 @@
  *   * Enhanced code without usage of strings
  *   * Additional error handling
  *   * Reduced the maximum request size
+ * - 0.3.OPENHAB 2016/06/08
+ *   * Return a JSON String which can be directly used by OpenHab
+ *   * Read query string also in POST request (in that case the real post data is ignored!)
  */
 
 // the debug flag during development
@@ -113,7 +121,7 @@ boolean portStatus[] = { false, false, false, false, false, false, false, false 
 const int maxSize = 480; // that is enough for 8 relays + a bigger header
 
 /****** General constants required by the application. DO NOT CHANGE ******/
-const char* VERSION = "{\"version\":\"0.3\"}";
+const char* VERSION = "{\"version\":\"0.3.OPENHAB\"}";
 
 // the get requests the application is listening to
 const char* REQ_ABOUT = "/about";
@@ -143,6 +151,12 @@ const int RCL = 2 + (numRelays > 9 ? 2 : 1);
 const char NL = '\n';
 // carriage return
 const char CR = '\r';
+// JSON string start
+const char JSS = '"';
+
+// open hab states
+const char* OH_ON = "ON";
+const char* OH_OFF = "OFF";
 
 // response of relay status, json start
 const char* RS_START = "{\"r\":[";
@@ -187,7 +201,7 @@ void loop() {
 		if (client) {
 			if((size = client.available()) > 0) {
 				#ifdef DEBUGGING
-					Serial.print("Memory before processing: "); Serial.println(freeMemory());
+					Serial.print("Mem bef: "); Serial.println(freeMemory());
 				#endif
 				// check the the data is not too big
 				if(size > maxSize) {
@@ -225,19 +239,40 @@ void loop() {
 						#ifdef DEBUGGING
 							Serial.println("POST req");
 						#endif
-						// extract the post data from the client message
+						
+						//extract the post data from the client message
 						char *lnl = NULL; // last line
 						char *src = msg-1; // first call begins with address msg
 						char *end = msg+size; // the end of the message
 						
-						do {
-							lnl = src;
-							// read to the end of the next line, but max to the end of the msg.
-							src = (char*) memchr(src+1, '\n', end-src);
-							#ifdef DEBUGGING
-								Serial.print("Msg left:"); Serial.println(src);
-							#endif
-						}while(src);
+						// the data in openhab is usually send as a query string
+						// the first line must look like: POST /?0=2 HTTP/1.1
+						// the question mark is at 6
+						if(msg[6] == '?') {
+							// ok, now search for the next space, which ends the query string
+							char * spaceLocation = (char*) memchr(src+7, ' ', end-src);
+							if (spaceLocation!=NULL) {
+								int pos = spaceLocation-src;
+								#ifdef DEBUGGING
+									Serial.print("Cal pos: "); Serial.println(pos);
+								#endif
+								end = src+pos;
+								src[pos] = 0;
+								lnl = src+7;
+							} else {
+								returnHeader(client, RC_ERR);
+								returnErr(client, 6);
+							}
+						} else {
+							do {
+								lnl = src;
+								// read to the end of the next line, but max to the end of the msg.
+								src = (char*) memchr(src+1, '\n', end-src);
+								#ifdef DEBUGGING
+									Serial.print("Msg left:"); Serial.println(src);
+								#endif
+							}while(src);
+						}
 						// +1 is to remove the line break before.
 						changeRelayStatus(client, lnl+1, end);
 					} else {
@@ -250,7 +285,7 @@ void loop() {
 			} // end if size > 0
 		} // end if client
 		// required for the loop timing
-		delay(1);
+		delay(2);
 		client.stop();
 		#ifdef DEBUGGING
 			Serial.print("Memory after processing: "); Serial.println(freeMemory());
@@ -283,13 +318,17 @@ char *getGetData(char *charArr, int start) {
  */
 void changeRelayStatus(EthernetClient &client, char *command, char *msgEnd) {
 	#ifdef DEBUGGING
-		Serial.print("POST data: '"); Serial.print(command); Serial.println("'");
+		Serial.print("data: '"); Serial.print(command); Serial.println("'");
 	#endif
 	// the command string needs to be terminated with the null byte.
 	*(command+(size_t)msgEnd) = 0;
 	
 	// check the length of the whole command
   	int length = msgEnd - command;
+  	#ifdef DEBUGGING
+  		Serial.print("len:"); Serial.println(length);
+  		Serial.print("cmd after null:"); Serial.println(command);
+  	#endif
   	if(length < 3) {
   		returnHeader(client, RC_ERR);
 		returnErr(client, 3);
@@ -341,7 +380,6 @@ void changeRelayStatus(EthernetClient &client, char *command, char *msgEnd) {
   		src = (char*) memchr(src+2, TOK_AND, srcNum);
   		// if there is no & then it means the command left is the status for the relay.
   		int statLen = src ? (src - lastSrc) : srcNum;
-		
 		// check the lenght of the relay number
 		if( statLen != 1 ) {
   			returnHeader(client, RC_ERR);
@@ -395,15 +433,17 @@ void changeRelayStatus(EthernetClient &client, char *command, char *msgEnd) {
 
 /**
  * Returns a JSON with the current values of the relays to the client. The 
- * JSON will look like: {"r":[0,0,0,0,0,0,0,0]}
+ * JSON will look like: {"r":["OFF","OFF","OFF","OFF","OFF","OFF","OFF","OFF"]}
  * This one means all releays are turned off.
  */
 void printRelayStatus(EthernetClient &client) {
 	client.print(RS_START);
-	int i = 0;
 	int lastRelay = numRelays-1;
-	for (i = 0; i < numRelays; i = i + 1) {
-		client.print(portStatus[i]);
+	// dump openHab only supports strings!
+	for (int i = 0; i < numRelays; i++) {
+		client.print(JSS);
+		client.print(portStatus[i] ? OH_ON : OH_OFF);
+		client.print(JSS);
 		if(i < lastRelay) {
 		  client.print(RS_SEP);
 		}
@@ -415,6 +455,10 @@ void printRelayStatus(EthernetClient &client) {
  * Returns a message to the client.
  */
 void returnErr(EthernetClient &client, int rc) {
+	#ifdef DEBUGGING
+		Serial.print("Returning error: ");
+		Serial.println(rc);
+	#endif
 	client.print(RS_ERR_START);
 	client.print(rc);
 	client.println(RS_ERR_END);

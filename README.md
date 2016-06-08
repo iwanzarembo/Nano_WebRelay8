@@ -3,14 +3,13 @@ An Android sketch which provides a small webserver to control releays connected 
 This sketch provides a small webserver to control releays connected to your Arduino Nano with ATmega328.
 
 # What the sketch does
-It is a small web server which listens to http requests to (de-)activate a certain relay. 
+It is a small web server which listens to http requests to (de-)activate a certain relay but with the difference that
+a post request can contain a query string. This is required for post calls from OpenHab.
 
 # Features
 - Initial GET request returns a JSON array with the current status of the relay.  
-  e.g.  {"r":[0,0,1,0,0,0,0,0]}  
-  -> 0 means the relay is turned off  
-  -> 1 means the relay is turned on  
-  Due to performance reasons only the status is returned. But you can see that the first  entry is for the first relay, the second for the second and so on.
+  e.g.   {"r":["OFF","ON","OFF","OFF","OFF","OFF","OFF","OFF"]}  
+  Due to performance reasons only the status is returned. But you can see that the first entry is for the first relay, the second for the second and so on.
 - Only POST requests can change the status of the relays.  
   The request data must follow the pattern: relay number = 0 or 1 or 2 => e.g. 0=1&1=2&2=1&3=0&4=1&5=1&6=1&7=1  
   -> The relay number can only be an integer between 0 and 7  
@@ -41,12 +40,21 @@ Found a bug? Please create an issue at https://github.com/iwanzarembo/Nano_WebRe
 
 The sketch was developed and build at codebender.cc and can be accessed at https://codebender.cc/sketch:72367
 
-created 04 Jan 2015 - by Iwan Zarembo
+# Known issues
 
-Version History:
+## My Requst never returns
+Sometimes the Webserver just does not stop the client, I do not know why. But if you resend the request, then it will 
+work again, which means you should always call with a timeout!
+
+# Version History
+
 - 0.2 2015/01/04
   * First version with usage of Strings
 - 0.3 2015/01/21
   * Enhanced code without usage of strings
   * Additional error handling
   * Reduced the maximum request size
+- 0.3.OPENHAB 2016/06/08
+  * Return a JSON String which can be directly used by OpenHab
+  * Read query string also in POST request (in that case the real post data is ignored!)
+
