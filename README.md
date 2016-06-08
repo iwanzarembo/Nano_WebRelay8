@@ -1,4 +1,4 @@
-# Nano_WebRelay8
+# Nano_WebRelay8 - OpenHab compatible
 An Android sketch which provides a small webserver to control releays connected to your Arduino Nano with ATmega328.
 This sketch provides a small webserver to control releays connected to your Arduino Nano with ATmega328.
 
@@ -22,12 +22,12 @@ a post request can contain a query string. This is required for post calls from 
 Additionally it is implementing a little bit of security like the maximum request size (default 
 set to 480 bytes).
 
-Hardware and Libraries used:
+# Hardware and Libraries used
 - An Ethernet Shield with the ENC28J60 chip, which requires the library  
   See https://github.com/ntruchsess/arduino_uip or http://playground.arduino.cc/Hardware/ArduinoEthernet
 - An 8 Kanal 5V Relay Module 
 
-Error messages:
+# Error messages
 The application only returns error codes and a HTTP 500 error to save the already very limited memory. 
 - 1 = The request is too big, please send one with less bytes or check the maxSize constant to increase the value.
 - 2 = Only GET and POST is supported, but something else has been received.
