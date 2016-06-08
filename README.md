@@ -5,6 +5,10 @@ This sketch provides a small webserver to control releays connected to your Ardu
 # What the sketch does
 It is a small web server which listens to http requests to (de-)activate a certain relay. 
 
+This sketch cannot be directly used by Homeautomation software like OpenHab (because of the handling of POST requests.
+So take a look at the [OpenHab](https://github.com/iwanzarembo/Nano_WebRelay8/tree/openhab) branch if you want to use 
+it with OpenHab. 
+
 # Features
 - Initial GET request returns a JSON array with the current status of the relay.  
   e.g.  {"r":[0,0,1,0,0,0,0,0]}  
