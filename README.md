@@ -27,12 +27,12 @@ it with OpenHab.
 Additionally it is implementing a little bit of security like the maximum request size (default 
 set to 480 bytes).
 
-Hardware and Libraries used:
+# Hardware and Libraries used
 - An Ethernet Shield with the ENC28J60 chip, which requires the library  
   See https://github.com/ntruchsess/arduino_uip or http://playground.arduino.cc/Hardware/ArduinoEthernet
 - An 8 Kanal 5V Relay Module 
 
-Error messages:
+# Error messages
 The application only returns error codes and a HTTP 500 error to save the already very limited memory. 
 - 1 = The request is too big, please send one with less bytes or check the maxSize constant to increase the value.
 - 2 = Only GET and POST is supported, but something else has been received.
@@ -45,9 +45,7 @@ Found a bug? Please create an issue at https://github.com/iwanzarembo/Nano_WebRe
 
 The sketch was developed and build at codebender.cc and can be accessed at https://codebender.cc/sketch:72367
 
-created 04 Jan 2015 - by Iwan Zarembo
-
-Version History:
+# Version History
 - 0.2 2015/01/04
   * First version with usage of Strings
 - 0.3 2015/01/21
