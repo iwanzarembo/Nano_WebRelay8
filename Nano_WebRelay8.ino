@@ -1,5 +1,5 @@
 /*
-	Nano_WebRelay8_OpenHab.ino - Sketch for Arduino Nano with ATmega328 
+	Nano_WebRelay8.ino - Sketch for Arduino Nano with ATmega328 
 	implementation to control relays via HTTP requests.
 	Copyright (c) 2015 Iwan Zarembo <iwan@zarembo.de>
 	All rights reserved.
@@ -40,7 +40,9 @@
  * 
  * Features:
  * - Initial GET request returns a JSON array with the current status of the relay.
- *   e.g.  {"r":["OFF","ON","OFF","OFF","OFF","OFF","OFF","OFF"]}
+ *   e.g. if the OPENHAB flag is active: {"r":["OFF","ON","OFF","OFF","OFF","OFF","OFF","OFF"]}
+ *   or {"r":[1,1,1,1,1,1,1,1]} if the OPENHAB flag is not active. YOu will get the minified version
+ *   as the default.
  *   Due to performance reasons only the status is returned. But you can see that the first  entry is for
  *   the first relay, the second for the second and so on.
  * - Only POST requests can change the status of the relays. The request data must follow the 
@@ -70,14 +72,6 @@
  * - 6 = The POST data does not follow the required pattern, see the description in the features section.
  *
  * Found a bug? Please create an issue at https://github.com/iwanzarembo/Nano_WebRelay8
- * 
- * The sketch was developed and build at codebender.cc and can be accessed at https://codebender.cc/sketch:321260
- * 
- * Known issues
- * 
- * - My Requst never returns
- *   Sometimes the Webserver just does not stop the client, I do not know why. But if you resend the request, then it will 
- *   work again, which means you should always call with a timeout!
  * 
  * created 04 Jan 2015 - by Iwan Zarembo
  * 
