@@ -14,13 +14,18 @@ it with OpenHab.
   e.g.  {"r":[0,0,1,0,0,0,0,0]}  
   -> 0 means the relay is turned off  
   -> 1 means the relay is turned on  
-  Due to performance reasons only the status is returned. But you can see that the first  entry is for the first relay, the second for the second and so on.
+  Due to performance reasons only the status is returned. But you can see that the first entry is for the first relay, the second for the second and so on.
+- Flag to enable the OpenHab specific return JSON which looks like {"r":["OFF","OFF","OFF","OFF","OFF","OFF","OFF","OFF"]}  
+  Just un-comment the OPENHAB define flag
+- Flag to use DHCP or hard coded IP address. Just un-comment the DHCP flag
 - Only POST requests can change the status of the relays.  
   The request data must follow the pattern: relay number = 0 or 1 or 2 => e.g. 0=1&1=2&2=1&3=0&4=1&5=1&6=1&7=1  
   -> The relay number can only be an integer between 0 and 7  
   -> 0 turns the relay off  
   -> 1 turns the relay on  
-  -> 2 changes the status of the relay. So a turned off relay would be switched on and the other way around
+  -> 2 changes the status of the relay. So a turned off relay would be switched on and the other way around  
+  OpenHab is sending the POST data in the URL, so this sketch is checking if the POST data is in the URL and if
+  yes, then it will be used and the real POST data is ignored.
 - A GET request to /about will show a JSON with the version of the sketch running on the board.  
   e.g.  {"version" : "0.2.1" }
   
@@ -43,8 +48,6 @@ The application only returns error codes and a HTTP 500 error to save the alread
 
 Found a bug? Please create an issue at https://github.com/iwanzarembo/Nano_WebRelay8
 
-The sketch was developed and build at codebender.cc and can be accessed at https://codebender.cc/sketch:72367
-
 # Version History
 - 0.2 2015/01/04
   * First version with usage of Strings
@@ -52,3 +55,12 @@ The sketch was developed and build at codebender.cc and can be accessed at https
   * Enhanced code without usage of strings
   * Additional error handling
   * Reduced the maximum request size
+- 0.3.OPENHAB 2016/06/08
+  * Return a JSON String which can be directly used by OpenHab
+  * Read query string also in POST request (in that case the real post data is ignored!)
+- 1.0.0 2016/10/28
+  * Add a flag to return OpenHab JSON string or a minified one
+  * Add a flag to use DHCP address or hard coded IP
+  * POST data can now be part of the URL e.g. curl http://arduino/?1=2 --data ""
+  
+  
